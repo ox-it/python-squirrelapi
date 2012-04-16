@@ -1,4 +1,7 @@
 from distutils.core import setup
+
+install_requires = open('requirements.txt').readlines()
+
 setup(name='squirrelapi',
         description='Python wrapper for C3 Squirrel Voicemail HTTP API',
         author='Mobile Oxford',
@@ -6,4 +9,5 @@ setup(name='squirrelapi',
         url='https://github.com/oucs/telecoms-self-service',
         version='0.1',
         py_modules=['squirrelapi'],
+        install_requires=install_requires,
         )
