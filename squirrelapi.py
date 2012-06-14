@@ -1,8 +1,11 @@
 import httplib
+import logging
 
 from urllib import urlencode
 from lxml import etree
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class SquirrelAPIResource(object):
@@ -66,6 +69,9 @@ class VoicemailMessage(SquirrelAPIResource):
 
 
 class SquirrelApiException(Exception):
+    """
+    Custom exception for Squirrel API
+    """
 
     ERROR_CODES = {
         0: 'Success',
@@ -108,11 +114,15 @@ class SquirrelApiException(Exception):
         2999: 'Other general errors',
     }
 
-    def __init__(self, error_code):
-        self.error_code
+    def __init__(self, error_code, path):
+        self.error_code = error_code
+        self.path = path
 
     def __str__(self):
-        return "Squirrel API returned value {0} ('{1}').".format(self.error_code, self.ERROR_CODES[self.error_code])
+        return "Squirrel API returned value {0} ('{1}') for path '{2}'."\
+            .format(self.error_code,
+                self.ERROR_CODES[self.error_code],
+                self.path)
 
 
 class VoicemailUser(SquirrelAPIResource):
@@ -148,10 +158,27 @@ class VoicemailUser(SquirrelAPIResource):
         response = etree.parse(login_response)
         code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
         if code != 0:
-            return (False, code)
+            raise SquirrelApiException(code, 'login')
         else:
             self.token = response.xpath('/c3voicemailapi/token')[0].text
-            return (True, self.token)
+            return self.token
+
+    def _handle_GET_request(self, params, api='uapi'):
+        """
+        Handle a request (GET) to the user API.
+        Throws an exception depending on error code.
+        """
+        if self.passwd: params['passwd'] = self.passwd
+        conn = self.get_connection()
+        path = "/{0}.aspx?{1}".format(api, urlencode(params))
+        logger.info("GET {0}".format(path))
+        conn.request('GET', path)
+        response = etree.parse(conn.getresponse())
+        code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
+        if code != 0:
+            # Error_code = 0 means "Success"
+            raise SquirrelApiException(code, path)
+        return response
 
     def get_messages(self, mailboxno=None, msgtype='live', api='uapi'):
         """Generally run without kwargs returns all 'live' messages in a users inbox.
@@ -163,16 +190,12 @@ class VoicemailUser(SquirrelAPIResource):
         mailboxno = mailboxno or self.mailboxno  # Override for superusers
         if not self.authenticated:
             return False
-        conn = self.get_connection()
         params = {'type': self.response_type,
                 'func': 'mailboxgetmessages',
                 'mailboxno': mailboxno,
                 'token': self.token,
                 'msgtype': msgtype}
-        if self.passwd: params['passwd'] = self.passwd
-        conn.request('GET', "/%s.aspx?%s" % (
-                    api, urlencode(params)))
-        response = etree.parse(conn.getresponse())
+        response = self._handle_GET_request(params)
         return [VoicemailMessage.from_element(self, mailboxno, e) for e in response.xpath(
             '/c3voicemailapi/messages/message')]
 
@@ -182,7 +205,6 @@ class VoicemailUser(SquirrelAPIResource):
         """
         if not self.authenticated:
             return False
-        conn = self.get_connection()
         params = {
             'type': self.response_type,
             'func': 'messagedelete',
@@ -190,19 +212,15 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'messageid': messageid,
         }
-        if self.passwd: params['passwd'] = self.passwd
-        conn.request('GET', "/%s.aspx?%s" % (
-            api, urlencode(params)))
-        response = etree.parse(conn.getresponse())
-        return int(response.xpath('/c3voicemailapi/error')[0].find('code').text)
+        response = self._handle_GET_request(params)
+        return True
 
-    def forward_message(self, mailboxno, messageid, recipientmailboxno, api='uapi'):
+    def forward_message(self, mailboxno, messageid, recipientmailboxno):
         """
         Forward a message to another mailbox
         """
         if not self.authenticated:
             return False
-        conn = self.get_connection()
         params = {
             'type': self.response_type,
             'func': 'messageforward',
@@ -211,19 +229,16 @@ class VoicemailUser(SquirrelAPIResource):
             'messageid': messageid,
             'recipientmailboxno': recipientmailboxno
             }
-        if self.passwd: params['passwd'] = self.passwd
-        conn.request('GET', "/%s.aspx?%s" % (
-            api, urlencode(params)))
-        response = etree.parse(conn.getresponse())
-        return int(response.xpath('/c3voicemailapi/error')[0].find('code').text)
+        response = self._handle_GET_request(params)
+        return True
 
-    def save_message(self, mailboxno, messageid, api='uapi'):
+    def save_message(self, mailboxno, messageid):
         """
-        Set the status of a message to "saved"
+        Set the status of a message to "saved",
+        or un-delete a message
         """
         if not self.authenticated:
             return False
-        conn = self.get_connection()
         params = {
             'type': self.response_type,
             'func': 'messagesave',
@@ -231,11 +246,8 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'messageid': messageid,
         }
-        if self.passwd: params['passwd'] = self.passwd
-        conn.request('GET', "/%s.aspx?%s" % (
-            api, urlencode(params)))
-        response = etree.parse(conn.getresponse())
-        return int(response.xpath('/c3voicemailapi/error')[0].find('code').text)
+        response = self._handle_GET_request(params)
+        return True
 
 
 class VoicemailSuperUser(VoicemailUser):
