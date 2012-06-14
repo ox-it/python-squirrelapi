@@ -23,9 +23,10 @@ class VoicemailMessage(SquirrelAPIResource):
     MESSAGE_STATUS = {1: 'new', 2: 'urgent', 3: 'saved', 4: 'deleted'}
     MESSAGE_TYPE = {1: 'voice', 2: 'fax'}
 
-    def __init__(self, user, id, status, type, created, sendercli,
-            sendermbx, length, mailboxno, **kwargs):
+    def __init__(self, user, id, mailboxno=None, status=None, type=None,
+            created=None, sendercli=None, sendermbx=None, length=None, **kwargs):
         self.user = user
+        self.mailboxno = mailboxno or user.mailboxno
         self.id = id
         self.status = status
         self.type = type
@@ -33,7 +34,6 @@ class VoicemailMessage(SquirrelAPIResource):
         self.sendercli = sendercli
         self.sendermbx = sendermbx,
         self.length = length
-        self.mailboxno = mailboxno
         super(VoicemailMessage, self).__init__(**kwargs)
 
     @classmethod
@@ -272,6 +272,9 @@ class VoicemailSuperUser(VoicemailUser):
     def get_messages(self, mailboxno, **kwargs):
         """Given a mailboxno will retrieve all the message objects"""
         return super(VoicemailSuperUser, self).get_messages(mailboxno, **kwargs)
+
+    def get_message(self, mailboxno, messageid):
+        return VoicemailMessage(self, messageid, mailboxno=mailboxno)
 
 if __name__ == '__main__':
     """Test retrieves all messages and downloads as .wav files."""
