@@ -127,6 +127,67 @@ class VoicemailUser(SquirrelAPIResource):
         return [VoicemailMessage.from_element(self, mailboxno, e) for e in response.xpath(
             '/c3voicemailapi/messages/message')]
 
+    def delete_message(self, mailboxno, messageid, api='uapi'):
+        """
+        Delete a message by its ID
+        """
+        if not self.authenticated:
+            return False
+        conn = self.get_connection()
+        params = {
+            'type': self.response_type,
+            'func': 'messagedelete',
+            'token': self.token,
+            'mailboxno': mailboxno,
+            'messageid': messageid,
+        }
+        if self.passwd: params['passwd'] = self.passwd
+        conn.request('GET', "/%s.aspx?%s" % (
+            api, urlencode(params)))
+        response = etree.parse(conn.getresponse())
+        return int(response.xpath('/c3voicemailapi/error')[0].find('code').text)
+
+    def forward_message(self, mailboxno, messageid, recipientmailboxno, api='uapi'):
+        """
+        Forward a message to another mailbox
+        """
+        if not self.authenticated:
+            return False
+        conn = self.get_connection()
+        params = {
+            'type': self.response_type,
+            'func': 'messageforward',
+            'token': self.token,
+            'mailboxno': mailboxno,
+            'messageid': messageid,
+            'recipientmailboxno': recipientmailboxno
+            }
+        if self.passwd: params['passwd'] = self.passwd
+        conn.request('GET', "/%s.aspx?%s" % (
+            api, urlencode(params)))
+        response = etree.parse(conn.getresponse())
+        return int(response.xpath('/c3voicemailapi/error')[0].find('code').text)
+
+    def save_message(self, mailboxno, messageid, api='uapi'):
+        """
+        Set the status of a message to "saved"
+        """
+        if not self.authenticated:
+            return False
+        conn = self.get_connection()
+        params = {
+            'type': self.response_type,
+            'func': 'messagesave',
+            'token': self.token,
+            'mailboxno': mailboxno,
+            'messageid': messageid,
+        }
+        if self.passwd: params['passwd'] = self.passwd
+        conn.request('GET', "/%s.aspx?%s" % (
+            api, urlencode(params)))
+        response = etree.parse(conn.getresponse())
+        return int(response.xpath('/c3voicemailapi/error')[0].find('code').text)
+
 
 class VoicemailSuperUser(VoicemailUser):
     def __init__(self, username):
