@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<c3voicemailapi>
+  <error>
+    <value>Success</value>
+    <code>0</code>
+  </error>
+  <messages>
+    <message>
+      <id>1121691</id>
+      <status>3</status>
+      <type>1</type>
+      <created>2012/06/15 10:02:53 AM</created>
+      <sendercli>07766771403</sendercli>
+      <sendermbx>13710</sendermbx>
+      <length>217</length>
+    </message>
+    <message>
+      <id>1121524</id>
+      <status>3</status>
+      <type>1</type>
+      <created>2012/06/14 5:28:19 PM</created>
+      <sendercli>13710</sendercli>
+      <sendermbx>
+      </sendermbx>
+      <length>3</length>
+    </message>
+  </messages>
+</c3voicemailapi>

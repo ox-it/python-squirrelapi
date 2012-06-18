@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<c3voicemailapi>
+  <error>
+    <value>Input parameter 'pin' is too short. Max 6 digits, min 6 digits.</value>
+    <code>2101</code>
+  </error>
+</c3voicemailapi>

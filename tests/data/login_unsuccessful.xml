@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<c3voicemailapi>
+  <error>
+    <value>Login failed for mailbox 83400. Incorrect PIN.</value>
+    <code>2205</code>
+  </error>
+</c3voicemailapi>
