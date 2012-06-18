@@ -251,9 +251,9 @@ class VoicemailUser(SquirrelAPIResource):
 
 
 class VoicemailSuperUser(VoicemailUser):
-    def __init__(self, username):
+    def __init__(self, username, *args, **kwargs):
         self.username = username
-        super(VoicemailSuperUser, self).__init__(0)
+        super(VoicemailSuperUser, self).__init__(0, *args, **kwargs)
 
     def login(self, supswd, api='uapi'):
         """Login as superuser is done with a username/password
