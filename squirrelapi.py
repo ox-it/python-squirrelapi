@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class SquirrelAPIResource(object):
     def __init__(self, passwd=None, response_type='xml',
-            endpoint='voicemail.telecoms.ox.ac.uk'):
+            endpoint='voicemail.example.com'):
         self.passwd = passwd
         self.response_type = response_type
         self.endpoint = endpoint
@@ -278,10 +278,10 @@ class VoicemailSuperUser(VoicemailUser):
 
 if __name__ == '__main__':
     """Test retrieves all messages and downloads as .wav files."""
-    su = VoicemailSuperUser('SUPERUSERNAME')
-    su.login('SUPERPASSWORD')
-    messages = su.get_messages(0)
+    user = VoicemailUser(12345)
+    user.login(123456)
+    messages = user.get_messages()
     for message in messages:
         contents = message.retrieve()
         m = open('%s.wav' % message.id, 'w')
-        m.write(contents)
+        m.write(contents.read())
