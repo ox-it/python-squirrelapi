@@ -65,7 +65,7 @@ class VoicemailMessage(SquirrelAPIResource):
         conn.request('GET', "/%s.aspx?%s" % (
                     api, urlencode(params)))
         response = conn.getresponse()
-        return response.read()
+        return response
 
 
 class SquirrelApiException(Exception):
