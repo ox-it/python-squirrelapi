@@ -1,4 +1,4 @@
-# Python API for C3 Squirrel Voicemail
+# python-squirrelapi
 
 This project wraps the Squirrel HTTP API and provides sensible Python object representations for key resources (users, mailboxes and messages for example).
 
