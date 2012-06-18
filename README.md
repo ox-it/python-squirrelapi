@@ -12,3 +12,4 @@ Example code for authenticating and downloading all your messages as '.wav' file
         contents = message.retrieve()
         m = open('%s.wav' % message.id, 'w')
         m.write(contents)
+
