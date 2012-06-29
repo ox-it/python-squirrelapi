@@ -1,5 +1,7 @@
 # python-squirrelapi
 
+[![Build Status](https://secure.travis-ci.org/oucs/python-squirrelapi.png?branch=master)](http://travis-ci.org/oucs/python-squirrelapi)
+
 This project wraps the Squirrel HTTP API and provides sensible Python object representations for key resources (users, mailboxes and messages for example).
 
 Example code for authenticating and downloading all your messages as '.wav' files to the working directory.
