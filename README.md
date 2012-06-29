@@ -13,6 +13,12 @@ Example code for authenticating and downloading all your messages as '.wav' file
         m = open('%s.wav' % message.id, 'w')
         m.write(contents)
 
+## Tests
+
+You can run tests using:
+
+    python setup.py test
+
 ## Revision
 
 This has been developed against the C3 Squirrel documentation "Issue 11". 
