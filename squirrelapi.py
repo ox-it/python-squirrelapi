@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class SquirrelAPIResource(object):
     def __init__(self, passwd=None, response_type='xml',
-            endpoint='voicemail.example.com'):
+                endpoint='voicemail.example.com'):
         self.passwd = passwd
         self.response_type = response_type
         self.endpoint = endpoint
@@ -227,8 +227,7 @@ class VoicemailUser(SquirrelAPIResource):
             'token': self.token,
             'mailboxno': mailboxno,
             'messageid': messageid,
-            'recipientmailboxno': recipientmailboxno
-            }
+            'recipientmailboxno': recipientmailboxno}
         response = self._handle_GET_request(params)
         return True
 
