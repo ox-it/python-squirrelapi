@@ -37,7 +37,7 @@ class VoicemailMessage(SquirrelAPIResource):
         super(VoicemailMessage, self).__init__(**kwargs)
 
     @classmethod
-    def from_element(cls, user, mailboxno, elem):
+    def from_element(cls, user, mailboxno, elem, endpoint):
         """Constructs Messages from etree message Elements"""
         kwargs = {'id': elem.find('id').text,
                 'status': int(elem.find('status').text),
@@ -48,7 +48,7 @@ class VoicemailMessage(SquirrelAPIResource):
                 'sendermbx': elem.find('sendermbx').text,
                 'length': int(elem.find('length').text),
                 }
-        return cls(user, mailboxno=mailboxno, **kwargs)
+        return cls(user, mailboxno=mailboxno, endpoint=endpoint, **kwargs)
 
     def retrieve(self, api='fapi', file_format='wav'):
         """Uses the file api to download .wav (default)"""
@@ -196,7 +196,7 @@ class VoicemailUser(SquirrelAPIResource):
                 'token': self.token,
                 'msgtype': msgtype}
         response = self._handle_GET_request(params)
-        return [VoicemailMessage.from_element(self, mailboxno, e) for e in response.xpath(
+        return [VoicemailMessage.from_element(self, mailboxno, e, self.endpoint) for e in response.xpath(
             '/c3voicemailapi/messages/message')]
 
     def delete_message(self, mailboxno, messageid, api='uapi'):
@@ -274,7 +274,7 @@ class VoicemailSuperUser(VoicemailUser):
         return super(VoicemailSuperUser, self).get_messages(mailboxno, **kwargs)
 
     def get_message(self, mailboxno, messageid):
-        return VoicemailMessage(self, messageid, mailboxno=mailboxno)
+        return VoicemailMessage(self, messageid, mailboxno=mailboxno, endpoint=self.endpoint)
 
 if __name__ == '__main__':
     """Test retrieves all messages and downloads as .wav files."""
