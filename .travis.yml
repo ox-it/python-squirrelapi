@@ -1,0 +1,17 @@
+language: python
+python:
+ - "2.6"
+ - "2.7"
+install:
+ - pip install -r requirements.txt --use-mirrors
+ - pip install pep8 --use-mirrors
+ - pip install https://github.com/dcramer/pyflakes/tarball/master
+script:
+ - make test
+notifications:
+    email:
+        recipients:
+            - tim.fernando@oucs.ox.ac.uk
+            - martin.filliau@oucs.ox.ac.uk
+            - david.king@oucs.ox.ac.uk
+
