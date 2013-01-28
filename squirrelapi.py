@@ -43,7 +43,7 @@ class VoicemailMessage(SquirrelAPIResource):
                 'status': int(elem.find('status').text),
                 'type': int(elem.find('type').text),
                 'created': datetime.strptime(elem.find('created').text,
-                    '%Y/%m/%d %I:%M:%S %p'),
+                    '%Y/%m/%d %H:%M:%S'),
                 'sendercli': elem.find('sendercli').text,
                 'sendermbx': elem.find('sendermbx').text,
                 'length': int(elem.find('length').text),
