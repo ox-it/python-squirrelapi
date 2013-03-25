@@ -252,6 +252,23 @@ class VoicemailUser(SquirrelAPIResource):
         response = self._handle_GET_request(params)
         return True
 
+    def pin_update(self, mailboxno, new_pin):
+        """Update the PIN of a given mailbox
+        :param mailboxno: directory number
+        :param new_pin: PIN to update
+        """
+        if not self.authenticated:
+            return False
+        params = {
+            'type': self.response_type,
+            'func': 'pinupdate',
+            'token': self.token,
+            'mailboxno': mailboxno,
+            'newpin': new_pin,
+        }
+        response = self._handle_GET_request(params)
+        return True
+
 
 class VoicemailSuperUser(VoicemailUser):
     def __init__(self, username, *args, **kwargs):
@@ -278,6 +295,27 @@ class VoicemailSuperUser(VoicemailUser):
 
     def get_message(self, mailboxno, messageid):
         return VoicemailMessage(self, messageid, mailboxno=mailboxno, endpoint=self.endpoint)
+
+    def lock_unlock_mailbox(self, mailboxno, lock=False):
+        """Lock or unlock a given mailbox
+        :param mailboxno: directory number
+        :param lock: (default to False / unlock), True to lock
+        """
+        if not self.authenticated:
+            return False
+        params = {
+            'type': self.response_type,
+            'func': 'mailboxlockunlock',
+            'token': self.token,
+            'mailboxno': mailboxno,
+        }
+        if lock:
+            params['lock'] = 1
+        else:
+            params['lock'] = 0
+        response = self._handle_GET_request(params, api='aapi')    # aapi: Administrative API
+        return True
+
 
 if __name__ == '__main__':
     """Test retrieves all messages and downloads as .wav files."""
