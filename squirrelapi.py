@@ -254,6 +254,7 @@ class VoicemailUser(SquirrelAPIResource):
 
     def pin_update(self, mailboxno, new_pin):
         """Update the PIN of a given mailbox
+        Will raise exception 2204 if mailbox is locked.
         :param mailboxno: directory number
         :param new_pin: PIN to update
         """
