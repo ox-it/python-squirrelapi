@@ -317,6 +317,21 @@ class VoicemailSuperUser(VoicemailUser):
         response = self._handle_GET_request(params, api='aapi')    # aapi: Administrative API
         return True
 
+    def mailbox_exist(self, mailboxno):
+        """Check if a mailbox exist
+        :param mailboxno: directory number
+        :return True if mailbox exist else False
+        """
+        params = {
+            'type': self.response_type,
+            'func': 'mailboxexist',
+            'token': self.token,
+            'mailboxno': mailboxno,
+        }
+        response = self._handle_GET_request(params, api='aapi')
+        exists = bool(int(response.xpath('/c3voicemailapi/mailboxexist')[0].text))
+        return exists
+
 
 if __name__ == '__main__':
     """Test retrieves all messages and downloads as .wav files."""
