@@ -1,7 +1,7 @@
 import mock
 import unittest2
 
-from squirrelapi import VoicemailUser, SquirrelApiException, VoicemailMessage, VoicemailSuperUser
+from squirrelapi import VoicemailUser, SquirrelApiException, VoicemailMessage, VoicemailSuperUser, SquirrelException
 from contextlib import contextmanager
 
 
@@ -57,3 +57,10 @@ class SquirrelUserAPI(unittest2.TestCase):
         with self.set_response('tests/data/mailbox_exist_false.xml'):
             exist = su.mailbox_exist('12121')
             self.assertFalse(exist)
+
+    def test_mailbox_exist_wrong(self):
+        su = VoicemailSuperUser(12345)
+        su.token = "FAKE"
+        with self.set_response('tests/data/mailbox_exist_wrong.xml'):
+            with self.assertRaises(SquirrelException) as e:
+                exist = su.mailbox_exist('123123')
