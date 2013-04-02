@@ -329,6 +329,7 @@ class VoicemailSuperUser(VoicemailUser):
             'mailboxno': mailboxno,
         }
         response = self._handle_GET_request(params, api='aapi')
+        # we expect mailboxexist to be 1 when the mailbox exist or 0 when it doesn't
         exists = bool(int(response.xpath('/c3voicemailapi/mailboxexist')[0].text))
         return exists
 
