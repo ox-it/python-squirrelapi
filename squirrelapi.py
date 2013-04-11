@@ -72,7 +72,11 @@ class VoicemailMessage(SquirrelAPIResource):
         return response
 
 
-class SquirrelApiException(Exception):
+class SquirrelException(Exception):
+    pass
+
+
+class SquirrelApiException(SquirrelException):
     """
     Custom exception for Squirrel API
     """
@@ -316,6 +320,32 @@ class VoicemailSuperUser(VoicemailUser):
             params['lock'] = 0
         response = self._handle_GET_request(params, api='aapi')    # aapi: Administrative API
         return True
+
+    def mailbox_exist(self, mailboxno):
+        """Check if a mailbox exist
+        :param mailboxno: directory number
+        :return True if mailbox exist else False
+        """
+        params = {
+            'type': self.response_type,
+            'func': 'mailboxexist',
+            'token': self.token,
+            'mailboxno': mailboxno,
+        }
+        response = self._handle_GET_request(params, api='aapi')
+        # we expect mailboxexist to be 1 when the mailbox exist or 0 when it doesn't
+        try:
+            value = int(response.xpath('/c3voicemailapi/mailboxexist')[0].text)
+        except ValueError as ve:
+            logger.error('Unexpected value in response', exc_info=True)
+            raise SquirrelException
+        if value == 0:
+            return False
+        elif value == 1:
+            return True
+        else:
+            logger.error('Unexpected int value {value} in response'.format(value=value))
+            raise SquirrelException
 
 
 if __name__ == '__main__':

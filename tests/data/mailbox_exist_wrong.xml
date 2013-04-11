@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c3voicemailapi>
+    <error>
+        <value>Success</value>
+        <code>0</code>
+    </error>
+    <mailboxexist>12</mailboxexist>
+</c3voicemailapi>
