@@ -10,17 +10,18 @@ logger = logging.getLogger(__name__)
 
 class SquirrelAPIResource(object):
     def __init__(self, passwd=None, response_type='xml',
-                endpoint='voicemail.example.com', use_ssl=True):
+                endpoint='voicemail.example.com', use_ssl=True, timeout=2):
         self.passwd = passwd
         self.response_type = response_type
         self.endpoint = endpoint
         self.use_ssl = use_ssl
+        self.timeout = timeout
 
     def get_connection(self):
         if self.use_ssl:
-            return httplib.HTTPSConnection(self.endpoint)
+            return httplib.HTTPSConnection(self.endpoint, timeout=self.timeout)
         else:
-            return httplib.HTTPConnection(self.endpoint)
+            return httplib.HTTPConnection(self.endpoint, timeout=self.timeout)
 
 
 class VoicemailMessage(SquirrelAPIResource):
