@@ -161,12 +161,12 @@ class VoicemailUser(SquirrelAPIResource):
         """
         conn = self.get_connection()
         params = {'type': self.response_type,
-                'func': 'mailboxlogin',
-                'mailboxno': self.mailboxno,
-                'pin': pin}
-        if self.passwd: params['passwd'] = self.passwd
-        conn.request('GET', "/%s.aspx?%s" % (
-                    api, urlencode(params)))
+                  'func': 'mailboxlogin',
+                  'mailboxno': self.mailboxno,
+                  'pin': pin}
+        if self.passwd:
+            params['passwd'] = self.passwd
+        conn.request('GET', "/%s.aspx?%s" % (api, urlencode(params)))
         return self._handle_login_response(conn.getresponse())
 
     def _handle_login_response(self, login_response):
