@@ -1,9 +1,11 @@
 import httplib
+from httplib import HTTPException
 import logging
 
 from urllib import urlencode
 from lxml import etree
 from datetime import datetime
+from lxml.etree import XMLSyntaxError
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +136,10 @@ class SquirrelApiException(SquirrelException):
                 self.path)
 
 
+class SquirrelConnectionException(SquirrelException):
+    pass
+
+
 class VoicemailUser(SquirrelAPIResource):
 
     def __init__(self, mailboxno, **kwargs):
@@ -181,13 +187,21 @@ class VoicemailUser(SquirrelAPIResource):
         conn = self.get_connection()
         path = "/{0}.aspx?{1}".format(api, urlencode(params))
         logger.info("GET {0}".format(path))
-        conn.request('GET', path)
-        response = etree.parse(conn.getresponse())
-        code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
-        if code != 0:
-            # Error_code = 0 means "Success"
-            raise SquirrelApiException(code, path)
-        return response
+        try:
+            conn.request('GET', path)
+        except HTTPException:
+            raise SquirrelConnectionException
+        else:
+            try:
+                response = etree.parse(conn.getresponse())
+            except XMLSyntaxError:
+                raise SquirrelException
+            else:
+                code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
+                if code != 0:
+                    # Error_code = 0 means "Success"
+                    raise SquirrelApiException(code, path)
+                return response
 
     def get_messages(self, mailboxno=None, msgtype='live', api='uapi'):
         """Generally run without kwargs returns all 'live' messages in a users inbox.
