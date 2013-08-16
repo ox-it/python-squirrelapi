@@ -1,6 +1,7 @@
 import httplib
-from httplib import HTTPException
+from httplib import HTTPException, ImproperConnectionState
 import logging
+import socket
 
 from urllib import urlencode
 from lxml import etree
@@ -168,9 +169,9 @@ class VoicemailUser(SquirrelAPIResource):
             params['passwd'] = self.passwd
         try:
             conn.request('GET', "/%s.aspx?%s" % (api, urlencode(params)))
-        except HTTPException:
+            return self._handle_login_response(conn.getresponse())
+        except (HTTPException, ImproperConnectionState, socket.timeout, socket.error):
             raise SquirrelConnectionException
-        return self._handle_login_response(conn.getresponse())
 
     def _handle_login_response(self, login_response):
         response = self._parse_response(login_response)
@@ -192,10 +193,10 @@ class VoicemailUser(SquirrelAPIResource):
         logger.info("GET {0}".format(path))
         try:
             conn.request('GET', path)
-        except HTTPException:
+            response = self._parse_response(conn.getresponse())
+        except (HTTPException, socket.timeout):
             raise SquirrelConnectionException
         else:
-            response = self._parse_response(conn.getresponse())
             code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
             if code != 0:
                 # Error_code = 0 means "Success"
@@ -208,7 +209,8 @@ class VoicemailUser(SquirrelAPIResource):
         try:
             return etree.parse(response)
         except XMLSyntaxError:
-            raise SquirrelException
+            logger.error('Unable to parse XML response', exc_info=True)
+            raise SquirrelException('Unable to parse XML response')
 
     def get_messages(self, mailboxno=None, msgtype='live', api='uapi'):
         """Generally run without kwargs returns all 'live' messages in a users inbox.
@@ -311,10 +313,13 @@ class VoicemailSuperUser(VoicemailUser):
                 'func': 'superuserlogin',
                 'superuser': self.username,
                 'superpswd': supswd}
-        if self.passwd: params['passwd'] = self.passwd
-        conn.request('GET', "/%s.aspx?%s" % (
-                    api, urlencode(params)))
-        return self._handle_login_response(conn.getresponse())
+        if self.passwd:
+            params['passwd'] = self.passwd
+        try:
+            conn.request('GET', "/%s.aspx?%s" % (api, urlencode(params)))
+            return self._handle_login_response(conn.getresponse())
+        except (HTTPException, ImproperConnectionState, socket.timeout, socket.error):
+            raise SquirrelConnectionException
 
     def get_messages(self, mailboxno, **kwargs):
         """Given a mailboxno will retrieve all the message objects"""
