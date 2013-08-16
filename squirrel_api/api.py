@@ -1,26 +1,32 @@
 import httplib
+from httplib import HTTPException, ImproperConnectionState
 import logging
+import socket
 
 from urllib import urlencode
 from lxml import etree
 from datetime import datetime
+from lxml.etree import XMLSyntaxError
+
+from squirrel_api.exceptions import SquirrelException, SquirrelApiException, SquirrelConnectionException
 
 logger = logging.getLogger(__name__)
 
 
 class SquirrelAPIResource(object):
     def __init__(self, passwd=None, response_type='xml',
-                endpoint='voicemail.example.com', use_ssl=True):
+                endpoint='voicemail.example.com', use_ssl=True, timeout=2):
         self.passwd = passwd
         self.response_type = response_type
         self.endpoint = endpoint
         self.use_ssl = use_ssl
+        self.timeout = timeout
 
     def get_connection(self):
         if self.use_ssl:
-            return httplib.HTTPSConnection(self.endpoint)
+            return httplib.HTTPSConnection(self.endpoint, timeout=self.timeout)
         else:
-            return httplib.HTTPConnection(self.endpoint)
+            return httplib.HTTPConnection(self.endpoint, timeout=self.timeout)
 
 
 class VoicemailMessage(SquirrelAPIResource):
@@ -72,67 +78,6 @@ class VoicemailMessage(SquirrelAPIResource):
         return response
 
 
-class SquirrelException(Exception):
-    pass
-
-
-class SquirrelApiException(SquirrelException):
-    """
-    Custom exception for Squirrel API
-    """
-
-    ERROR_CODES = {
-        0: 'Success',
-        2000: 'Password errors',
-        2001: 'Type parameter issues',
-        2002: 'Func parameter issues',
-        2003: 'Extn parameter issues',
-        2010: 'Problem generating statistics',
-        2100: 'Mailboxno parameter issues',
-        2101: 'Pin parameter issues',
-        2102: 'Token invalid',
-        2103: 'Name parameter issues',
-        2104: 'Cos parameter issues',
-        2105: 'Messageid parameter issues',
-        2106: 'Greetingnumber parameter issues',
-        2107: 'Email parameter issues',
-        2108: 'Userdata1 parameter issues',
-        2109: 'Cli parameter issues',
-        2110: 'Pinrequired parameter issues',
-        2111: 'Superuser parameter issues',
-        2112: 'Superuserpswd parameter issues',
-        2113: 'Greeting number parameter issues',
-        2114: 'Marksaved parameter issues',
-        2115: 'Action parameter issues',
-        2116: 'Lock parameter issues',
-        2200: 'Mailbox already exists',
-        2201: 'Mailbox does not exist',
-        2202: 'Invalid COS',
-        2203: 'Validation CLI already in use',
-        2204: 'Mailbox locked',
-        2205: 'Incorrect PIN',
-        2206: 'Incorrect PIN, mailbox locked',
-        2207: 'Super User login failed',
-        2208: 'Security token invalid',
-        2209: 'Message ID invalid',
-        2210: 'Validation CLI not used',
-        2211: 'Weak PIN',
-        2212: 'PIN update required',
-        2213: 'PIN not changed',
-        2999: 'Other general errors',
-    }
-
-    def __init__(self, error_code, path):
-        self.error_code = error_code
-        self.path = path
-
-    def __str__(self):
-        return "Squirrel API returned value {0} ('{1}') for path '{2}'."\
-            .format(self.error_code,
-                self.ERROR_CODES[self.error_code],
-                self.path)
-
-
 class VoicemailUser(SquirrelAPIResource):
 
     def __init__(self, mailboxno, **kwargs):
@@ -154,16 +99,19 @@ class VoicemailUser(SquirrelAPIResource):
         """
         conn = self.get_connection()
         params = {'type': self.response_type,
-                'func': 'mailboxlogin',
-                'mailboxno': self.mailboxno,
-                'pin': pin}
-        if self.passwd: params['passwd'] = self.passwd
-        conn.request('GET', "/%s.aspx?%s" % (
-                    api, urlencode(params)))
-        return self._handle_login_response(conn.getresponse())
+                  'func': 'mailboxlogin',
+                  'mailboxno': self.mailboxno,
+                  'pin': pin}
+        if self.passwd:
+            params['passwd'] = self.passwd
+        try:
+            conn.request('GET', "/%s.aspx?%s" % (api, urlencode(params)))
+            return self._handle_login_response(conn.getresponse())
+        except (HTTPException, ImproperConnectionState, socket.timeout, socket.error):
+            raise SquirrelConnectionException
 
     def _handle_login_response(self, login_response):
-        response = etree.parse(login_response)
+        response = self._parse_response(login_response)
         code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
         if code != 0:
             raise SquirrelApiException(code, 'login')
@@ -180,13 +128,26 @@ class VoicemailUser(SquirrelAPIResource):
         conn = self.get_connection()
         path = "/{0}.aspx?{1}".format(api, urlencode(params))
         logger.info("GET {0}".format(path))
-        conn.request('GET', path)
-        response = etree.parse(conn.getresponse())
-        code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
-        if code != 0:
-            # Error_code = 0 means "Success"
-            raise SquirrelApiException(code, path)
-        return response
+        try:
+            conn.request('GET', path)
+            response = self._parse_response(conn.getresponse())
+        except (HTTPException, socket.timeout):
+            raise SquirrelConnectionException
+        else:
+            code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
+            if code != 0:
+                # Error_code = 0 means "Success"
+                raise SquirrelApiException(code, path)
+            return response
+
+    def _parse_response(self, response):
+        """Parse response, raise an exception if it cannot be parsed
+        """
+        try:
+            return etree.parse(response)
+        except XMLSyntaxError:
+            logger.error('Unable to parse XML response', exc_info=True)
+            raise SquirrelException('Unable to parse XML response')
 
     def get_messages(self, mailboxno=None, msgtype='live', api='uapi'):
         """Generally run without kwargs returns all 'live' messages in a users inbox.
@@ -220,7 +181,7 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'messageid': messageid,
         }
-        response = self._handle_GET_request(params)
+        self._handle_GET_request(params)
         return True
 
     def forward_message(self, mailboxno, messageid, recipientmailboxno):
@@ -236,7 +197,7 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'messageid': messageid,
             'recipientmailboxno': recipientmailboxno}
-        response = self._handle_GET_request(params)
+        self._handle_GET_request(params)
         return True
 
     def save_message(self, mailboxno, messageid):
@@ -253,7 +214,7 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'messageid': messageid,
         }
-        response = self._handle_GET_request(params)
+        self._handle_GET_request(params)
         return True
 
     def pin_update(self, mailboxno, new_pin):
@@ -271,7 +232,7 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'newpin': new_pin,
         }
-        response = self._handle_GET_request(params)
+        self._handle_GET_request(params)
         return True
 
 
@@ -289,10 +250,13 @@ class VoicemailSuperUser(VoicemailUser):
                 'func': 'superuserlogin',
                 'superuser': self.username,
                 'superpswd': supswd}
-        if self.passwd: params['passwd'] = self.passwd
-        conn.request('GET', "/%s.aspx?%s" % (
-                    api, urlencode(params)))
-        return self._handle_login_response(conn.getresponse())
+        if self.passwd:
+            params['passwd'] = self.passwd
+        try:
+            conn.request('GET', "/%s.aspx?%s" % (api, urlencode(params)))
+            return self._handle_login_response(conn.getresponse())
+        except (HTTPException, ImproperConnectionState, socket.timeout, socket.error):
+            raise SquirrelConnectionException
 
     def get_messages(self, mailboxno, **kwargs):
         """Given a mailboxno will retrieve all the message objects"""
@@ -318,7 +282,7 @@ class VoicemailSuperUser(VoicemailUser):
             params['lock'] = 1
         else:
             params['lock'] = 0
-        response = self._handle_GET_request(params, api='aapi')    # aapi: Administrative API
+        self._handle_GET_request(params, api='aapi')    # aapi: Administrative API
         return True
 
     def mailbox_exist(self, mailboxno):
@@ -336,7 +300,7 @@ class VoicemailSuperUser(VoicemailUser):
         # we expect mailboxexist to be 1 when the mailbox exist or 0 when it doesn't
         try:
             value = int(response.xpath('/c3voicemailapi/mailboxexist')[0].text)
-        except ValueError as ve:
+        except ValueError:
             logger.error('Unexpected value in response', exc_info=True)
             raise SquirrelException
         if value == 0:
