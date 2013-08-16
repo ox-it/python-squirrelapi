@@ -173,10 +173,7 @@ class VoicemailUser(SquirrelAPIResource):
         return self._handle_login_response(conn.getresponse())
 
     def _handle_login_response(self, login_response):
-        try:
-            response = etree.parse(login_response)
-        except XMLSyntaxError:
-            raise SquirrelException
+        response = self._parse_response(login_response)
         code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
         if code != 0:
             raise SquirrelApiException(code, 'login')
@@ -198,16 +195,20 @@ class VoicemailUser(SquirrelAPIResource):
         except HTTPException:
             raise SquirrelConnectionException
         else:
-            try:
-                response = etree.parse(conn.getresponse())
-            except XMLSyntaxError:
-                raise SquirrelException
-            else:
-                code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
-                if code != 0:
-                    # Error_code = 0 means "Success"
-                    raise SquirrelApiException(code, path)
-                return response
+            response = self._parse_response(conn.getresponse())
+            code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
+            if code != 0:
+                # Error_code = 0 means "Success"
+                raise SquirrelApiException(code, path)
+            return response
+
+    def _parse_response(self, response):
+        """Parse response, raise an exception if it cannot be parsed
+        """
+        try:
+            return etree.parse(response)
+        except XMLSyntaxError:
+            raise SquirrelException
 
     def get_messages(self, mailboxno=None, msgtype='live', api='uapi'):
         """Generally run without kwargs returns all 'live' messages in a users inbox.
