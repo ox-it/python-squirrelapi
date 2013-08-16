@@ -166,11 +166,17 @@ class VoicemailUser(SquirrelAPIResource):
                   'pin': pin}
         if self.passwd:
             params['passwd'] = self.passwd
-        conn.request('GET', "/%s.aspx?%s" % (api, urlencode(params)))
+        try:
+            conn.request('GET', "/%s.aspx?%s" % (api, urlencode(params)))
+        except HTTPException:
+            raise SquirrelConnectionException
         return self._handle_login_response(conn.getresponse())
 
     def _handle_login_response(self, login_response):
-        response = etree.parse(login_response)
+        try:
+            response = etree.parse(login_response)
+        except XMLSyntaxError:
+            raise SquirrelException
         code = int(response.xpath('/c3voicemailapi/error/code')[0].text)
         if code != 0:
             raise SquirrelApiException(code, 'login')
