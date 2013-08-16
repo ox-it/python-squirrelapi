@@ -1,7 +1,8 @@
 import mock
 import unittest2
 
-from squirrelapi import VoicemailUser, SquirrelApiException, VoicemailMessage, VoicemailSuperUser, SquirrelException
+from squirrel_api import VoicemailUser, VoicemailMessage, VoicemailSuperUser
+from squirrel_api.exceptions import SquirrelException, SquirrelApiException
 from contextlib import contextmanager
 
 
@@ -11,7 +12,7 @@ class SquirrelUserAPI(unittest2.TestCase):
 
     @contextmanager
     def set_response(self, response_file):
-        with mock.patch('squirrelapi.SquirrelAPIResource.get_connection') as m:
+        with mock.patch('squirrel_api.api.SquirrelAPIResource.get_connection') as m:
             with open(response_file) as f:
                 m().getresponse.return_value = f
                 yield
