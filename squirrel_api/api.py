@@ -181,7 +181,7 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'messageid': messageid,
         }
-        response = self._handle_GET_request(params)
+        self._handle_GET_request(params)
         return True
 
     def forward_message(self, mailboxno, messageid, recipientmailboxno):
@@ -197,7 +197,7 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'messageid': messageid,
             'recipientmailboxno': recipientmailboxno}
-        response = self._handle_GET_request(params)
+        self._handle_GET_request(params)
         return True
 
     def save_message(self, mailboxno, messageid):
@@ -214,7 +214,7 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'messageid': messageid,
         }
-        response = self._handle_GET_request(params)
+        self._handle_GET_request(params)
         return True
 
     def pin_update(self, mailboxno, new_pin):
@@ -232,7 +232,7 @@ class VoicemailUser(SquirrelAPIResource):
             'mailboxno': mailboxno,
             'newpin': new_pin,
         }
-        response = self._handle_GET_request(params)
+        self._handle_GET_request(params)
         return True
 
 
@@ -282,7 +282,7 @@ class VoicemailSuperUser(VoicemailUser):
             params['lock'] = 1
         else:
             params['lock'] = 0
-        response = self._handle_GET_request(params, api='aapi')    # aapi: Administrative API
+        self._handle_GET_request(params, api='aapi')    # aapi: Administrative API
         return True
 
     def mailbox_exist(self, mailboxno):
@@ -300,7 +300,7 @@ class VoicemailSuperUser(VoicemailUser):
         # we expect mailboxexist to be 1 when the mailbox exist or 0 when it doesn't
         try:
             value = int(response.xpath('/c3voicemailapi/mailboxexist')[0].text)
-        except ValueError as ve:
+        except ValueError:
             logger.error('Unexpected value in response', exc_info=True)
             raise SquirrelException
         if value == 0:
